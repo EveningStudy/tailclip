@@ -85,11 +85,20 @@ A small notification confirms each action. When you fetch a file, or a photo for
 
 ### 3. iPhone and iPad (Shortcuts)
 
-Create two shortcuts in the Shortcuts app:
+**Quickest: generate them on a Mac.** The shortcuts sync to your iPhone and iPad through iCloud:
+
+```bash
+python3 clients/apple/make_shortcuts.py https://myserver.tail1234.ts.net
+shortcuts sign -m anyone -i "Send to tailclip.unsigned.shortcut" -o "Send to tailclip.shortcut"
+shortcuts sign -m anyone -i "Get from tailclip.unsigned.shortcut" -o "Get from tailclip.shortcut"
+open "Send to tailclip.shortcut" "Get from tailclip.shortcut"
+```
+
+**Or build them by hand** in the Shortcuts app:
 
 **Send to tailclip**
 1. **Get Clipboard**
-2. **Get Contents of URL**: `https://myserver.tail1234.ts.net/api/clips`. Tap *Show More*, then set *Method* to **POST** and *Request Body* to **File**, and choose **Clipboard** as the file.
+2. **Get Contents of URL**: `https://myserver.tail1234.ts.net/api/clips`. Tap *Show More*, then set *Method* to **POST** and *Request Body* to **File**, and choose **Clipboard** as the file. (Optional: add the header `X-Source` with **Device Details → Device Model**, so clips are labelled iPhone, iPad or Mac.)
 3. **Show Notification**: "Sent"
 
 **Get from tailclip**
@@ -97,7 +106,7 @@ Create two shortcuts in the Shortcuts app:
 2. **Copy to Clipboard**
 3. **Show Notification**: "Copied"
 
-Then bind them to a gesture in **Settings → Accessibility → Touch → Back Tap**, for example double-tap to send and triple-tap to fetch. To send photos and files straight from other apps, turn on **Show in Share Sheet** for the first shortcut. Tailscale must be connected on the device.
+Then bind them to a gesture in **Settings → Accessibility → Touch → Back Tap** (iPhone), for example double-tap to send and triple-tap to fetch. They also work from Control Center, the Action button, and Home Screen widgets. The first run on each device asks to connect to your server; choose **Always Allow**. Tailscale must be connected on the device. To send photos and files from other apps, use the web app's **File** button.
 
 ### 4. Mac
 
