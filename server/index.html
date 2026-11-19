@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="tailclip">
+<meta name="color-scheme" content="light dark">
+<title>tailclip</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='5' width='20' height='24' rx='4' fill='%234f6bed'/%3E%3Crect x='11' y='2' width='10' height='6' rx='2' fill='%23b8c5ff'/%3E%3Cpath d='M11 15h10M11 20h7' stroke='white' stroke-width='2.4' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --text: #1d2129; --muted: #6b7280; --line: #e3e6eb;
+    --accent: #4f6bed; --accent-ink: #ffffff; --accent-soft: #eef1fe; --danger: #d93f3f;
+    --ok: #1f9d61; --shadow: 0 1px 2px rgba(16,24,40,.05), 0 1px 3px rgba(16,24,40,.06);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111317; --card: #1a1d23; --text: #e8eaee; --muted: #9aa1ad; --line: #2a2e36;
+      --accent: #7b91ff; --accent-ink: #0d1020; --accent-soft: #232945; --danger: #ff6b6b;
+      --ok: #3ccf8e; --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 20px 16px 40px; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 20px; letter-spacing: -.01em; }
+  .brand svg { width: 28px; height: 28px; }
+  .status { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .status.on .dot { background: var(--ok); }
+  .status.off .dot { background: var(--danger); }
+
+  .composer {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 12px; transition: border-color .15s, background .15s;
+  }
+  .composer.drag { border-color: var(--accent); background: var(--accent-soft); }
+  textarea {
+    width: 100%; min-height: 84px; resize: vertical; border: 0; outline: 0; background: transparent;
+    color: inherit; font: inherit; padding: 4px 4px 8px;
+  }
+  .row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .spacer { flex: 1; }
+  .hint { color: var(--muted); font-size: 12.5px; }
+  .btn {
+    appearance: none; border: 1px solid var(--line); background: var(--card); color: var(--text);
+    font: inherit; font-size: 14px; font-weight: 550; padding: 7px 13px; border-radius: 10px;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.ghost { background: transparent; border-color: transparent; color: var(--muted); }
+  .btn.ghost:hover { color: var(--danger); border-color: transparent; }
+  .btn.small { font-size: 13px; padding: 5px 10px; }
+  .btn svg { width: 16px; height: 16px; }
+
+  .listhead { display: flex; align-items: baseline; gap: 8px; margin: 26px 2px 10px; }
+  .listhead h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0; }
+  .count { color: var(--muted); font-size: 13px; }
+
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .clip {
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 12px 14px; display: grid; gap: 8px;
+    animation: pop .18s ease-out;
+  }
+  .clip.latest { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+  @keyframes pop { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .meta { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 4px; background: var(--accent-soft); color: var(--accent);
+    font-weight: 600; padding: 1px 8px; border-radius: 999px; font-size: 12px;
+  }
+  .content pre {
+    margin: 0; white-space: pre-wrap; word-break: break-word; font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    max-height: 180px; overflow: auto;
+  }
+  .content img { display: block; max-width: 100%; max-height: 260px; border-radius: 10px; border: 1px solid var(--line); background: repeating-conic-gradient(#8881 0 25%, transparent 0 50%) 0 0/16px 16px; }
+  .file { display: flex; align-items: center; gap: 10px; font-weight: 550; word-break: break-all; }
+  .file svg { width: 26px; height: 26px; flex: none; color: var(--accent); }
+  .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .empty { text-align: center; color: var(--muted); padding: 36px 12px; border: 1.5px dashed var(--line); border-radius: var(--radius); }
+  footer { margin-top: 28px; text-align: center; color: var(--muted); font-size: 12.5px; }
+  #toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-size: 14px; font-weight: 550;
+    opacity: 0; pointer-events: none; transition: opacity .18s, transform .18s; max-width: calc(100% - 32px);
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+  #toast.err { background: var(--danger); color: #fff; }
+  @media (max-width: 520px) { .hint { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><rect x="6" y="5" width="20" height="24" rx="4" fill="#4f6bed"/><rect x="11" y="2" width="10" height="6" rx="2" fill="#b8c5ff"/><path d="M11 15h10M11 20h7" stroke="white" stroke-width="2.4" stroke-linecap="round"/></svg>
+      tailclip
+    </div>
+    <div id="status" class="status"><span class="dot"></span><span id="status-text">Connecting…</span></div>
+  </header>
+
+  <section id="composer" class="composer">
+    <textarea id="text" placeholder="Type or paste text here…" aria-label="Text to send"></textarea>
+    <div class="row">
+      <button id="paste" class="btn" type="button" title="Send what is on this device's clipboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>
+        Send clipboard
+      </button>
+      <label class="btn" title="Send a file or photo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
+        File
+        <input id="file" type="file" multiple hidden>
+      </label>
+      <span class="spacer"></span>
+      <span class="hint">Drop files anywhere · Ctrl/⌘ + Enter to send</span>
+      <button id="send" class="btn primary" type="button">Send</button>
+    </div>
+  </section>
+
+  <div class="listhead">
+    <h2>Recent</h2><span id="count" class="count"></span><span class="spacer"></span>
+    <button id="clear" class="btn ghost small" type="button">Clear all</button>
+  </div>
+  <ul id="list"></ul>
+  <p id="empty" class="empty" hidden>Nothing here yet. Send something from any of your devices.</p>
+  <footer>Clips stay in memory only and disappear after <span id="ttl">24 hours</span>.</footer>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const API = "api/clips";
+let version = -1, clips = [], toastTimer = 0;
+
+const ICON_FILE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+
+function toast(msg, isErr = false) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.className = "show" + (isErr ? " err" : "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.className = ""), 2200);
+}
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { cache: "no-store", ...opts });
+  if (!r.ok) {
+    let msg = r.status + "";
+    try { msg = (await r.json()).error || msg; } catch (_) {}
+    throw new Error(msg);
+  }
+  return r;
+}
+
+function ago(ts) {
+  const s = Math.max(0, Date.now() / 1000 - ts);
+  if (s < 45) return "just now";
+  if (s < 3600) return Math.round(s / 60) + " min ago";
+  if (s < 86400) return Math.round(s / 3600) + " h ago";
+  return Math.round(s / 86400) + " d ago";
+}
+function size(n) {
+  if (n < 1024) return n + " B";
+  if (n < 1048576) return (n / 1024).toFixed(1) + " KB";
+  return (n / 1048576).toFixed(1) + " MB";
+}
+function duration(sec) {
+  if (sec % 86400 === 0) { const d = sec / 86400; return d === 1 ? "24 hours" : d + " days"; }
+  if (sec % 3600 === 0) return sec / 3600 + " hours";
+  return Math.round(sec / 60) + " minutes";
+}
+
+function setStatus(ok, user) {
+  const s = $("#status");
+  s.className = "status " + (ok ? "on" : "off");
+  $("#status-text").textContent = ok ? (user ? user.replace(/@.*/, "") : "Connected") : "Offline";
+}
+
+async function refresh(force = false) {
+  try {
+    const j = await (await api(API)).json();
+    setStatus(true, j.user);
+    $("#ttl").textContent = duration(j.limits.ttl_seconds);
+    if (force || j.version !== version) {
+      version = j.version; clips = j.clips; render();
+    } else {
+      document.querySelectorAll("[data-ts]").forEach((el) => (el.textContent = ago(+el.dataset.ts)));
+    }
+  } catch (e) {
+    setStatus(false);
+  }
+}
+
+function button(label, cls, onClick) {
+  const b = document.createElement("button");
+  b.type = "button"; b.className = "btn small " + cls; b.textContent = label;
+  b.addEventListener("click", onClick);
+  return b;
+}
+
+function render() {
+  const list = $("#list");
+  list.replaceChildren();
+  $("#empty").hidden = clips.length > 0;
+  $("#count").textContent = clips.length ? clips.length : "";
+  $("#clear").hidden = clips.length === 0;
+  clips.forEach((c, i) => {
+    const li = document.createElement("li");
+    li.className = "clip" + (i === 0 ? " latest" : "");
+
+    const meta = document.createElement("div");
+    meta.className = "meta";
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = c.kind === "text" ? "Text" : c.kind === "image" ? "Image" : "File";
+    const src = document.createElement("span");
+    src.textContent = c.source;
+    const when = document.createElement("span");
+    when.dataset.ts = c.created; when.textContent = ago(c.created);
+    const sz = document.createElement("span");
+    sz.textContent = c.kind === "text" ? c.chars + " chars" : size(c.size);
+    meta.append(tag, src, "·", when, "·", sz);
+
+    const content = document.createElement("div");
+    content.className = "content";
+    if (c.kind === "text") {
+      const pre = document.createElement("pre");
+      pre.textContent = c.preview + (c.truncated ? "…" : "");
+      content.append(pre);
+    } else if (c.kind === "image" && ["image/png", "image/jpeg", "image/gif", "image/webp"].includes(c.mime)) {
+      const img = document.createElement("img");
+      img.src = API + "/" + c.id; img.alt = "Clipboard image"; img.loading = "lazy";
+      content.append(img);
+    } else {
+      const f = document.createElement("div");
+      f.className = "file"; f.innerHTML = ICON_FILE;
+      f.append(c.name || (c.kind === "image" ? "image (" + c.mime.split("/")[1] + ")" : "file"));
+      content.append(f);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "actions";
+    if (c.kind !== "file") actions.append(button("Copy", "primary", () => copyClip(c)));
+    if (c.kind !== "text") actions.append(button("Download", "", () => download(c)));
+    actions.append(button("Delete", "ghost", () => removeClip(c)));
+
+    li.append(meta, content, actions);
+    list.append(li);
+  });
+}
+
+async function toPng(blob) {
+  if (blob.type === "image/png") return blob;
+  const bmp = await createImageBitmap(blob);
+  const canvas = document.createElement("canvas");
+  canvas.width = bmp.width; canvas.height = bmp.height;
+  canvas.getContext("2d").drawImage(bmp, 0, 0);
+  return new Promise((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error("convert"))), "image/png"));
+}
+
+function legacyCopy(text) {
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.append(ta); ta.select(); ta.setSelectionRange(0, text.length);
+  const ok = document.execCommand("copy");
+  ta.remove();
+  if (!ok) throw new Error("blocked by the browser");
+}
+
+async function copyClip(c) {
+  try {
+    if (c.kind === "text") {
+      if (!c.truncated) {
+        try { await navigator.clipboard.writeText(c.preview); }
+        catch (_) { legacyCopy(c.preview); }
+      } else {
+        const blob = api(API + "/" + c.id).then((r) => r.text()).then((t) => new Blob([t], { type: "text/plain" }));
+        await navigator.clipboard.write([new ClipboardItem({ "text/plain": blob })]);
+      }
+    } else {
+      const blob = api(API + "/" + c.id).then((r) => r.blob()).then(toPng);
+      await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    }
+    toast("Copied to this device");
+  } catch (e) {
+    toast(c.kind === "image" ? "This browser can't copy that image. Use Download." : "Copy failed: " + e.message, true);
+  }
+}
+
+function download(c) {
+  const a = document.createElement("a");
+  a.href = API + "/" + c.id + "?download=1";
+  a.download = c.name || "";
+  document.body.append(a); a.click(); a.remove();
+}
+
+async function removeClip(c) {
+  try { await api(API + "/" + c.id, { method: "DELETE" }); refresh(true); }
+  catch (e) { toast("Delete failed: " + e.message, true); }
+}
+
+async function send(body, type, filename) {
+  const headers = { "Content-Type": type || "application/octet-stream" };
+  if (filename) headers["X-Filename"] = encodeURIComponent(filename);
+  await api(API, { method: "POST", headers, body });
+}
+
+async function sendText(text) {
+  if (!text.trim()) return toast("Nothing to send", true);
+  try { await send(text, "text/plain;charset=utf-8"); toast("Sent"); refresh(true); return true; }
+  catch (e) { toast("Send failed: " + e.message, true); return false; }
+}
+
+async function sendFiles(files) {
+  let n = 0;
+  for (const f of files) {
+    try { await send(f, f.type, f.type.startsWith("image/") && /^image\.\w+$/.test(f.name) ? "" : f.name); n++; }
+    catch (e) { toast(f.name + ": " + e.message, true); }
+  }
+  if (n) { toast(n === 1 ? "Sent" : "Sent " + n + " files"); refresh(true); }
+}
+
+$("#send").addEventListener("click", async () => {
+  if (await sendText($("#text").value)) $("#text").value = "";
+});
+$("#text").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $("#send").click(); }
+});
+
+$("#paste").addEventListener("click", async () => {
+  try {
+    if (navigator.clipboard.read) {
+      for (const item of await navigator.clipboard.read()) {
+        const img = item.types.find((t) => t.startsWith("image/"));
+        if (img) { await sendFiles([new File([await item.getType(img)], "image." + img.split("/")[1], { type: img })]); return; }
+        if (item.types.includes("text/plain")) { await sendText(await (await item.getType("text/plain")).text()); return; }
+      }
+      toast("Clipboard is empty", true);
+    } else {
+      await sendText(await navigator.clipboard.readText());
+    }
+  } catch (e) {
+    toast("Clipboard access was blocked. Paste into the box instead.", true);
+  }
+});
+
+$("#file").addEventListener("change", (e) => { sendFiles([...e.target.files]); e.target.value = ""; });
+
+document.addEventListener("paste", (e) => {
+  const files = [...(e.clipboardData?.files || [])];
+  if (files.length) { e.preventDefault(); sendFiles(files); return; }
+  if (e.target !== $("#text")) {
+    const t = e.clipboardData?.getData("text/plain");
+    if (t) { e.preventDefault(); sendText(t); }
+  }
+});
+
+const composer = $("#composer");
+let dragDepth = 0;
+document.addEventListener("dragenter", (e) => { e.preventDefault(); dragDepth++; composer.classList.add("drag"); });
+document.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; composer.classList.remove("drag"); } });
+document.addEventListener("dragover", (e) => e.preventDefault());
+document.addEventListener("drop", (e) => {
+  e.preventDefault(); dragDepth = 0; composer.classList.remove("drag");
+  if (e.dataTransfer.files.length) sendFiles([...e.dataTransfer.files]);
+  else { const t = e.dataTransfer.getData("text/plain"); if (t) sendText(t); }
+});
+
+$("#clear").addEventListener("click", async () => {
+  if (!confirm("Delete every clip on the relay?")) return;
+  try { await api(API, { method: "DELETE" }); refresh(true); toast("Cleared"); }
+  catch (e) { toast("Clear failed: " + e.message, true); }
+});
+
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refresh(); });
+setInterval(() => { if (!document.hidden) refresh(); }, 2000);
+refresh(true);
+</script>
+</body>
+</html>
