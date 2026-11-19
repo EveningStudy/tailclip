@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
 import os
 import re
 import signal
@@ -28,7 +29,7 @@ from pathlib import Path
 from typing import Optional
 from urllib.parse import quote, unquote, urlsplit
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 HERE = Path(__file__).resolve().parent
 
 INLINE_IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp"}
@@ -183,6 +184,21 @@ def classify(body: bytes, content_type: str, filename: Optional[str]) -> tuple[s
     if ctype and "/" in ctype and ctype not in ("image/svg+xml", "text/html"):
         return "file", ctype
     return "file", "application/octet-stream"
+
+
+EXTENSIONS = {
+    "image/png": ".png", "image/jpeg": ".jpg", "image/gif": ".gif", "image/webp": ".webp",
+    "image/heic": ".heic", "application/pdf": ".pdf", "application/zip": ".zip",
+    "video/mp4": ".mp4", "video/quicktime": ".mov", "audio/mpeg": ".mp3", "audio/mp4": ".m4a",
+}
+
+
+def default_name(kind: str, mime: str) -> str:
+    """A readable file name for uploads that arrive without one (e.g. from
+    Apple Shortcuts), so downloads keep a sensible extension."""
+    ext = EXTENSIONS.get(mime) or mimetypes.guess_extension(mime) or ""
+    stem = "photo" if kind == "image" else "file"
+    return f"{stem}-{time.strftime('%Y%m%d-%H%M%S')}{ext}"
 
 
 def clean_label(value: str, limit: int) -> str:
@@ -400,7 +416,9 @@ class Handler(BaseHTTPRequestHandler):
         elif not body:
             self._error(HTTPStatus.BAD_REQUEST, "Nothing to send: the clip is empty.")
             return
-        source = clean_label(self.headers.get("X-Source", ""), 40) or guess_source(
+        elif not name:
+            name = default_name(kind, mime)
+        source =clean_label(self.headers.get("X-Source", ""), 40) or guess_source(
             self.headers.get("User-Agent", ""))
         clip = self.store.add(Clip(kind=kind, mime=mime, data=body, name=name, source=source))
         self._json(HTTPStatus.CREATED, clip.meta())

@@ -106,7 +106,9 @@ open "Send to tailclip.shortcut" "Get from tailclip.shortcut"
 2. **Copy to Clipboard**
 3. **Show Notification**: "Copied"
 
-Then bind them to a gesture in **Settings → Accessibility → Touch → Back Tap** (iPhone), for example double-tap to send and triple-tap to fetch. They also work from Control Center, the Action button, and Home Screen widgets. The first run on each device asks to connect to your server; choose **Always Allow**. Tailscale must be connected on the device. To send photos and files from other apps, use the web app's **File** button.
+Then bind them to a gesture in **Settings → Accessibility → Touch → Back Tap** (iPhone), for example double-tap to send and triple-tap to fetch. They also work from Control Center, the Action button, and Home Screen widgets. The first run on each device asks to connect to your server; choose **Always Allow**. Tailscale must be connected on the device.
+
+The generated **Send to tailclip** also lives in the **Share Sheet** (and Finder's Share menu and Quick Actions on a Mac). Shared photos, files, PDFs, links or text are sent one by one, and running it on its own sends the clipboard. If you build it by hand, turn on *Show in Share Sheet*, set *If there's no input* to *Get Clipboard*, and send the *Shortcut Input* instead of the clipboard.
 
 ### 4. Mac
 

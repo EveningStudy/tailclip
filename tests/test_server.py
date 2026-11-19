@@ -70,6 +70,16 @@ class ServerTest(unittest.TestCase):
         self.assertIn("attachment", headers["Content-Disposition"])
         self.assertEqual(headers["Content-Security-Policy"], "sandbox")
 
+    def test_unnamed_uploads_get_a_name_with_extension(self):
+        _, _, body = self.push(b"%PDF-1.7 ...", "application/pdf")
+        meta = json.loads(body)
+        self.assertEqual(meta["kind"], "file")
+        self.assertRegex(meta["name"], r"^file-\d{8}-\d{6}\.pdf$")
+        _, _, body = self.push(PNG, "image/png")
+        self.assertRegex(json.loads(body)["name"], r"^photo-\d{8}-\d{6}\.png$")
+        _, _, body = self.push(b"just text")
+        self.assertIsNone(json.loads(body)["name"])
+
     def test_html_upload_is_never_served_as_html(self):
         self.push(b"<script>alert(1)</script>", "text/html", **{"X-Filename": "x.html"})
         _, headers, _ = self.req("GET", "/api/latest")

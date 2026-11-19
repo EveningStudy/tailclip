@@ -48,8 +48,14 @@ def notify(text: str) -> dict:
     return action("notification", WFNotificationActionBody=text, WFNotificationActionSound=False)
 
 
-def workflow(actions: list, glyph: int, color: int) -> dict:
-    return {
+SHARE_INPUT_CLASSES = [
+    "WFImageContentItem", "WFGenericFileContentItem", "WFPDFContentItem", "WFAVAssetContentItem",
+    "WFStringContentItem", "WFRichTextContentItem", "WFURLContentItem", "WFSafariWebPageContentItem",
+]
+
+
+def workflow(actions: list, glyph: int, color: int, **extra) -> dict:
+    flow = {
         "WFWorkflowClientVersion": "2607.0.2",
         "WFWorkflowMinimumClientVersion": 900,
         "WFWorkflowMinimumClientVersionString": "900",
@@ -60,20 +66,27 @@ def workflow(actions: list, glyph: int, color: int) -> dict:
         "WFWorkflowOutputContentItemClasses": [],
         "WFWorkflowActions": actions,
     }
+    flow.update(extra)
+    return flow
 
 
 def send_shortcut(base: str) -> dict:
-    clip, device, post = new_id(), new_id(), new_id()
+    """Sends whatever was shared to it (several photos or files are sent one
+    by one). Run on its own (Back Tap, hotkey) it sends the clipboard."""
+    device, loop, post = new_id(), new_id(), new_id()
+    shortcut_input = {"Value": {"Type": "ExtensionInput"}, "WFSerializationType": "WFTextTokenAttachment"}
+    repeat_item = {"Value": {"Type": "Variable", "VariableName": "Repeat Item"},
+                   "WFSerializationType": "WFTextTokenAttachment"}
     return workflow([
-        action("getclipboard", UUID=clip),
         action("getdevicedetails", UUID=device, WFDeviceDetail="Device Model"),
+        action("repeat.each", GroupingIdentifier=loop, WFControlFlowMode=0, WFInput=shortcut_input),
         action(
             "downloadurl",
             UUID=post,
             WFURL=f"{base}/api/clips",
             WFHTTPMethod="POST",
             WFHTTPBodyType="File",
-            WFRequestVariable=attachment(clip, "Clipboard"),
+            WFRequestVariable=repeat_item,
             ShowHeaders=True,
             WFHTTPHeaders={
                 "Value": {"WFDictionaryFieldValueItems": [{
@@ -84,8 +97,13 @@ def send_shortcut(base: str) -> dict:
                 "WFSerializationType": "WFDictionaryFieldValue",
             },
         ),
+        action("repeat.each", GroupingIdentifier=loop, WFControlFlowMode=2, UUID=new_id()),
         notify("Sent to tailclip"),
-    ], glyph=59749, color=4282601983)
+    ], glyph=59749, color=4282601983,
+        WFWorkflowTypes=["ActionExtension", "QuickActions"],
+        WFWorkflowInputContentItemClasses=SHARE_INPUT_CLASSES,
+        WFWorkflowNoInputBehavior={"Name": "WFWorkflowNoInputBehaviorGetClipboard", "Parameters": {}},
+        WFQuickActionSurfaces=[])
 
 
 def get_shortcut(base: str) -> dict:
